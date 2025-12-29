@@ -1,227 +1,279 @@
-# ws scrcpy
+# ws-scrcpy
 
-Web client for [Genymobile/scrcpy][scrcpy] and more.
+基于 WebSocket 的 [scrcpy](https://github.com/Genymobile/scrcpy) Web 客户端，支持在浏览器中远程控制 Android 设备。
 
-## Requirements
+本项目是 [NetrisTV/ws-scrcpy](https://github.com/NetrisTV/ws-scrcpy) 的 fork 版本，将 scrcpy-server 升级到基于官方 scrcpy v3.1 版本。
 
-Browser must support the following technologies:
-* WebSockets
-* Media Source Extensions and h264 decoding;
-* WebWorkers
-* WebAssembly
+## 项目简介
 
-Server:
-* Node.js v10+
-* node-gyp ([installation](https://github.com/nodejs/node-gyp#installation))
-* `adb` executable must be available in the PATH environment variable
+ws-scrcpy 是一个允许你通过 Web 浏览器远程查看和控制 Android 设备的工具。它使用修改版的 scrcpy-server 通过 WebSocket 协议传输 H.264 视频流，并在浏览器中使用多种解码器进行解码显示。
 
-Device:
-* Android 5.0+ (API 21+)
-* Enabled [adb debugging](https://developer.android.com/studio/command-line/adb.html#Enabling)
-* On some devices, you also need to enable
-[an additional option](https://github.com/Genymobile/scrcpy/issues/70#issuecomment-373286323)
-to control it using keyboard and mouse.
+### 主要特性
 
-## Build and Start
+- **屏幕投射**: 实时查看 Android 设备屏幕
+- **远程控制**: 支持触摸、键盘、鼠标操作
+- **多种解码器**: MSE Player、Broadway Player、TinyH264 Player、WebCodecs Player
+- **文件管理**: 拖拽上传 APK、文件浏览和下载
+- **远程 Shell**: 在浏览器中使用 adb shell
+- **DevTools**: 调试设备上的 WebView
 
-Make sure you have installed [node.js](https://nodejs.org/en/download/),
-[node-gyp](https://github.com/nodejs/node-gyp) and
-[build tools](https://github.com/nodejs/node-gyp#installation)
-```shell
-git clone https://github.com/NetrisTV/ws-scrcpy.git
+## 系统要求
+
+### 浏览器要求
+- WebSocket 支持
+- Media Source Extensions (MSE) 和 H.264 解码支持
+- WebWorkers 支持
+- WebAssembly 支持
+
+### 服务器要求
+- Node.js v16+
+- node-gyp ([安装指南](https://github.com/nodejs/node-gyp#installation))
+- `adb` 可执行文件必须在 PATH 环境变量中
+
+### 构建 scrcpy-server 要求
+- Java JDK 17+
+- Android SDK (API 36)
+- Gradle
+
+### 设备要求
+- Android 5.0+ (API 21+)
+- 已启用 [USB 调试](https://developer.android.com/studio/command-line/adb.html#Enabling)
+- 部分设备需要启用[额外选项](https://github.com/Genymobile/scrcpy/issues/70#issuecomment-373286323)以支持键鼠控制
+
+## 项目结构
+
+```
+ws-scrcpy/
+├── src/                          # 前端和后端源代码
+│   ├── app/                      # 前端应用代码
+│   │   ├── player/               # 视频播放器实现
+│   │   ├── controlMessage/       # 控制消息定义
+│   │   └── ...
+│   └── server/                   # Node.js 服务器代码
+├── vendor/                       # 第三方依赖
+│   └── Genymobile/scrcpy/        # scrcpy-server 子模块 (websocket 分支)
+├── dist/                         # 构建输出目录
+├── webpack/                      # Webpack 配置
+└── docs/                         # 文档
+```
+
+## 快速开始
+
+### 1. 克隆仓库
+
+```bash
+git clone --recursive https://github.com/EucalyZ/ws-scrcpy.git
 cd ws-scrcpy
+```
 
-## For stable version find latest tag and switch to it:
-# git tag -l
-# git checkout vX.Y.Z
+如果已经克隆但没有子模块，执行：
+```bash
+git submodule update --init --recursive
+```
 
+### 2. 构建 scrcpy-server
+
+#### 2.1 配置 Android SDK
+
+在 `vendor/Genymobile/scrcpy/` 目录下创建 `local.properties` 文件：
+
+```properties
+sdk.dir=C:\\Users\\你的用户名\\AppData\\Local\\Android\\Sdk
+```
+
+或者设置环境变量：
+```bash
+# Windows
+set ANDROID_HOME=C:\Users\你的用户名\AppData\Local\Android\Sdk
+
+# Linux/macOS
+export ANDROID_HOME=$HOME/Android/Sdk
+```
+
+#### 2.2 构建 server
+
+```bash
+cd vendor/Genymobile/scrcpy
+
+# Windows
+.\gradlew.bat assembleDebug
+
+# Linux/macOS
+./gradlew assembleDebug
+```
+
+#### 2.3 复制构建产物
+
+```bash
+cp server/build/outputs/apk/debug/server-debug.apk server/scrcpy-server
+```
+
+### 3. 安装依赖并启动
+
+```bash
+cd ws-scrcpy  # 回到项目根目录
 npm install
 npm start
 ```
 
-## Supported features
+服务启动后，在浏览器中访问 `http://localhost:8000`
 
-### Android
+## 详细配置
 
-#### Screen casting
-The modified [version][fork] of [Genymobile/scrcpy][scrcpy] used to stream
-H264-video, which then decoded by one of included decoders:
+### 环境变量
 
-##### Mse Player
+| 变量名 | 说明 | 默认值 |
+|--------|------|--------|
+| `WS_SCRCPY_CONFIG` | 配置文件路径 | - |
+| `WS_SCRCPY_PATHNAME` | URL 路径前缀 | `/` |
 
-Based on [xevokk/h264-converter][xevokk/h264-converter].
-HTML5 Video.<br>
-Requires [Media Source API][MSE] and `video/mp4; codecs="avc1.42E01E"`
-[support][isTypeSupported]. Creates mp4 containers from NALU, received from a
-device, then feeds them to [MediaSource][MediaSource]. In theory, it can use
-hardware acceleration.
+### 配置文件
 
-##### Broadway Player
+配置文件格式参考: [config.example.yaml](config.example.yaml)
 
-Based on [mbebenita/Broadway][broadway] and
-[131/h264-live-player][h264-live-player].<br>
-Software video-decoder compiled into wasm-module.
-Requires [WebAssembly][wasm] and preferably [WebGL][webgl] support.
+```yaml
+server:
+  port: 8000
+  hostname: "0.0.0.0"
 
-##### TinyH264 Player
+# HTTPS 配置 (可选)
+ssl:
+  pemCertPath: "/path/to/cert.pem"
+  pemKeyPath: "/path/to/key.pem"
+```
 
-Based on [udevbe/tinyh264][tinyh264].<br>
-Software video-decoder compiled into wasm-module. A slightly updated version of
-[mbebenita/Broadway][broadway].
-Requires [WebAssembly][wasm], [WebWorkers][workers], [WebGL][webgl] support.
+### 自定义构建
 
-##### WebCodecs Player
+通过修改 [build.config.override.json](build.config.override.json) 自定义构建：
 
-Decoding is done by browser built-in (software/hardware) media decoder.
-Requires [WebCodecs][webcodecs] support. At the moment, available only in
-[Chromium](https://www.chromestatus.com/feature/5669293909868544) and derivatives.
+```json
+{
+  "INCLUDE_APPL": false,
+  "INCLUDE_GOOG": true,
+  "INCLUDE_ADB_SHELL": true,
+  "INCLUDE_DEV_TOOLS": true,
+  "INCLUDE_FILE_LISTING": true,
+  "USE_BROADWAY": true,
+  "USE_H264_CONVERTER": true,
+  "USE_TINY_H264": true,
+  "USE_WEBCODECS": true,
+  "SCRCPY_LISTENS_ON_ALL_INTERFACES": true
+}
+```
 
-#### Remote control
-* Touch events (including multi-touch)
-* Multi-touch emulation: <kbd>CTRL</kbd> to start with center at the center of
-the screen, <kbd>SHIFT</kbd> + <kbd>CTRL</kbd> to start with center at the
-current point
-* Mouse wheel and touchpad vertical/horizontal scrolling
-* Capturing keyboard events
-* Injecting text (ASCII only)
-* Copy to/from device clipboard
-* Device "rotation"
+| 选项 | 说明 |
+|------|------|
+| `INCLUDE_APPL` | 包含 iOS 设备支持 |
+| `INCLUDE_GOOG` | 包含 Android 设备支持 |
+| `INCLUDE_ADB_SHELL` | 包含远程 Shell 功能 |
+| `INCLUDE_DEV_TOOLS` | 包含 DevTools 功能 |
+| `INCLUDE_FILE_LISTING` | 包含文件管理功能 |
+| `USE_BROADWAY` | 包含 Broadway 解码器 |
+| `USE_H264_CONVERTER` | 包含 MSE 播放器 |
+| `USE_TINY_H264` | 包含 TinyH264 解码器 |
+| `USE_WEBCODECS` | 包含 WebCodecs 播放器 |
+| `SCRCPY_LISTENS_ON_ALL_INTERFACES` | WebSocket 服务器监听所有接口 |
 
-#### File push
-Drag & drop an APK file to push it to the `/data/local/tmp` directory. You can
-install it manually from the included [xtermjs/xterm.js][xterm.js] terminal
-emulator (see below).
+## 视频播放器说明
 
-#### Remote shell
-Control your device from `adb shell` in your browser.
+### MSE Player (推荐)
+- 基于 [xevokk/h264-converter](https://github.com/xevokk/h264-converter)
+- 使用 HTML5 Video 和 Media Source API
+- 可能使用硬件加速，性能最佳
 
-#### Debug WebPages/WebView
-[/docs/Devtools.md](/docs/Devtools.md)
+### Broadway Player
+- 基于 [mbebenita/Broadway](https://github.com/mbebenita/Broadway)
+- WebAssembly 软件解码器
+- 兼容性好，但 CPU 占用较高
 
-#### File listing
-* List files
-* Upload files by drag & drop
-* Download files
+### TinyH264 Player
+- 基于 [udevbe/tinyh264](https://github.com/udevbe/tinyh264)
+- Broadway 的优化版本
+- 使用 WebWorker 进行解码
 
-### iOS
+### WebCodecs Player
+- 使用浏览器内置解码器
+- 仅 Chromium 系浏览器支持
+- 性能优秀
 
-***Experimental Feature***: *is not built by default*
-(see [custom build](#custom-build))
+## 使用说明
 
-#### Screen Casting
+### 连接设备
 
-Requires [ws-qvh][ws-qvh] available in `PATH`.
+1. 确保设备已通过 USB 连接并启用 USB 调试
+2. 运行 `adb devices` 确认设备已识别
+3. 启动 ws-scrcpy 服务器
+4. 在浏览器中打开 `http://localhost:8000`
+5. 选择设备和播放器类型
 
-#### MJPEG Server
+### 远程控制
 
-Enable `USE_WDA_MJPEG_SERVER` in the build configuration file
-(see [custom build](#custom-build)).
+- **触摸**: 直接在视频画面上点击/滑动
+- **多点触控模拟**:
+  - `Ctrl` + 点击: 以屏幕中心为对称点
+  - `Shift` + `Ctrl` + 点击: 以当前点为对称点
+- **滚动**: 鼠标滚轮或触控板
+- **键盘**: 直接输入，支持快捷键
+- **粘贴**: 支持剪贴板同步
 
-Alternative way to stream screen content. It does not
-require additional software as `ws-qvh`, but may require more resources as each
-frame encoded as jpeg image.
+### 文件传输
 
-#### Remote control
+- 拖拽 APK 文件到视频画面可上传到 `/data/local/tmp`
+- 使用文件管理器浏览、上传、下载文件
 
-To control device we use [appium/WebDriverAgent][WebDriverAgent].
-Functionality limited to:
-* Simple touch
-* Scroll
-* Home button click
+## 开发
 
-Make sure you did properly [setup WebDriverAgent](https://appium.io/docs/en/drivers/ios-xcuitest-real-devices/).
-WebDriverAgent project is located under `node_modules/appium-webdriveragent/`.
+### 开发模式
 
-You might want to enable `AssistiveTouch` on your device: `Settings/General/Accessibility`.
+```bash
+npm run dist:dev
+```
 
-## Custom Build
+### 生产构建
 
-You can customize project before build by overriding the
-[default configuration](/webpack/default.build.config.json) in
-[build.config.override.json](/build.config.override.json):
-* `INCLUDE_APPL` - include code for iOS device tracking and control
-* `INCLUDE_GOOG` - include code for Android device tracking and control
-* `INCLUDE_ADB_SHELL` - [remote shell](#remote-shell) for android devices
-([xtermjs/xterm.js][xterm.js], [Tyriar/node-pty][node-pty])
-* `INCLUDE_DEV_TOOLS` - [dev tools](#debug-webpageswebview) for web pages and
-web views on android devices
-* `INCLUDE_FILE_LISTING` - minimalistic [file management](#file-listing)
-* `USE_BROADWAY` - include [Broadway Player](#broadway-player)
-* `USE_H264_CONVERTER` - include [Mse Player](#mse-player)
-* `USE_TINY_H264` - include [TinyH264 Player](#tinyh264-player)
-* `USE_WEBCODECS` - include [WebCodecs Player](#webcodecs-player)
-* `USE_WDA_MJPEG_SERVER` - configure WebDriverAgent to start MJPEG server
-* `USE_QVH_SERVER` - include support for [ws-qvh][ws-qvh]
-* `SCRCPY_LISTENS_ON_ALL_INTERFACES` - WebSocket server in `scrcpy-server.jar`
-will listen for connections on all available interfaces. When `true`, it allows
-connecting to device directly from a browser. Otherwise, the connection must be
-established over adb.
+```bash
+npm run dist:prod
+```
 
-## Run configuration
+### 代码检查
 
-You can specify a path to a configuration file in `WS_SCRCPY_CONFIG`
-environment variable.
+```bash
+npm run lint
+npm run format
+```
 
-If you want to have another pathname than "/" you can specify it in the
-`WS_SCRCPY_PATHNAME` environment variable.
+## 已知问题
 
-Configuration file format: [Configuration.d.ts](/src/types/Configuration.d.ts).
+- Android 模拟器上的服务器监听内部接口，需要选择 "proxy over adb"
+- TinyH264Player 可能启动失败，刷新页面重试
+- Safari 上文件上传不显示进度
 
-Configuration file example: [config.example.yaml](/config.example.yaml).
+## 安全警告
 
-## Known issues
+- 浏览器与 Node.js 服务器之间默认无加密（可配置 HTTPS）
+- 浏览器与 Android 设备上的 WebSocket 服务器之间无加密
+- 无任何级别的授权验证
+- scrcpy-server 会监听所有网络接口
+- 最后一个客户端断开后 scrcpy-server 会继续运行
 
-* The server on the Android Emulator listens on the internal interface and not
-available from the outside. Select `proxy over adb` from the interfaces list.
-* TinyH264Player may fail to start, try to reload the page.
-* MsePlayer reports too many dropped frames in quality statistics: needs
-further investigation.
-* On Safari file upload does not show progress (it works in one piece).
+**建议**: 仅在受信任的网络环境中使用，或配置 HTTPS 和防火墙规则。
 
-## Security warning
-Be advised and keep in mind:
-* There is no encryption between browser and node.js server (you can [configure](#run-configuration) HTTPS).
-* There is no encryption between browser and WebSocket server on android device.
-* There is no authorization on any level.
-* The modified version of scrcpy with integrated WebSocket server is listening
-for connections on all network interfaces (see [custom build](#custom-build)).
-* The modified version of scrcpy will keep running after the last client
-disconnected.
+## 相关项目
 
-## Related projects
-* [Genymobile/scrcpy][scrcpy]
-* [xevokk/h264-converter][xevokk/h264-converter]
-* [131/h264-live-player][h264-live-player]
-* [mbebenita/Broadway][broadway]
-* [DeviceFarmer/adbkit][adbkit]
-* [xtermjs/xterm.js][xterm.js]
-* [udevbe/tinyh264][tinyh264]
-* [danielpaulus/quicktime_video_hack][qvh]
+- [Genymobile/scrcpy](https://github.com/Genymobile/scrcpy) - 原版 scrcpy
+- [NetrisTV/ws-scrcpy](https://github.com/NetrisTV/ws-scrcpy) - 原版 ws-scrcpy
+- [mbebenita/Broadway](https://github.com/mbebenita/Broadway) - H.264 解码器
+- [udevbe/tinyh264](https://github.com/udevbe/tinyh264) - TinyH264 解码器
+- [DeviceFarmer/adbkit](https://github.com/DeviceFarmer/adbkit) - ADB 客户端
+- [xtermjs/xterm.js](https://github.com/xtermjs/xterm.js) - 终端模拟器
 
-## scrcpy websocket fork
+## scrcpy WebSocket 分支
 
-Currently, support of WebSocket protocol added to v1.19 of scrcpy
-* [Prebuilt package](/vendor/Genymobile/scrcpy/scrcpy-server.jar)
-* [Source code][fork]
+本项目使用的 scrcpy-server 基于官方 scrcpy v3.1 版本，添加了 WebSocket 支持：
 
-[fork]: https://github.com/NetrisTV/scrcpy/tree/feature/websocket-v1.19.x
+- [预构建包](vendor/Genymobile/scrcpy/server/scrcpy-server)
+- [源代码](https://github.com/EucalyZ/scrcpy/tree/websocket)
 
-[scrcpy]: https://github.com/Genymobile/scrcpy
-[xevokk/h264-converter]: https://github.com/xevokk/h264-converter
-[h264-live-player]: https://github.com/131/h264-live-player
-[broadway]: https://github.com/mbebenita/Broadway
-[adbkit]: https://github.com/DeviceFarmer/adbkit
-[xterm.js]: https://github.com/xtermjs/xterm.js
-[tinyh264]: https://github.com/udevbe/tinyh264
-[node-pty]: https://github.com/Tyriar/node-pty
-[WebDriverAgent]: https://github.com/appium/WebDriverAgent
-[qvh]: https://github.com/danielpaulus/quicktime_video_hack
-[ws-qvh]: https://github.com/NetrisTV/ws-qvh
+## 许可证
 
-[MSE]: https://developer.mozilla.org/en-US/docs/Web/API/Media_Source_Extensions_API
-[isTypeSupported]: https://developer.mozilla.org/en-US/docs/Web/API/MediaSource/isTypeSupported
-[MediaSource]: https://developer.mozilla.org/en-US/docs/Web/API/MediaSource
-[wasm]: https://developer.mozilla.org/en-US/docs/WebAssembly
-[webgl]: https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API
-[workers]: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API
-[webcodecs]: https://w3c.github.io/webcodecs/
+[MIT License](LICENSE)
