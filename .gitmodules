@@ -1,0 +1,4 @@
+[submodule "vendor/Genymobile/scrcpy"]
+	path = vendor/Genymobile/scrcpy
+	url = https://github.com/EucalyZ/scrcpy.git
+	branch = websocket
