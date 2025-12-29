@@ -63,12 +63,10 @@ export abstract class BaseCanvasBasedPlayer extends BasePlayer {
         if (!this.canvas) {
             return;
         }
-        if (this.receivedFirstFrame) {
-            const data = this.decodedFrames.shift();
-            if (data) {
-                const { frame, width, height } = data;
-                this.canvas.decode(frame, width, height);
-            }
+        const data = this.decodedFrames.shift();
+        if (data) {
+            const { frame, width, height } = data;
+            this.canvas.decode(frame, width, height);
         }
         if (this.decodedFrames.length) {
             this.animationFrameId = requestAnimationFrame(this.drawDecoded);
@@ -78,8 +76,8 @@ export abstract class BaseCanvasBasedPlayer extends BasePlayer {
     };
 
     protected onFrameDecoded(width: number, height: number, frame: any): void {
-        if (!this.receivedFirstFrame) {
-            // decoded frame with previous video settings
+        if (!this.canvas) {
+            // canvas not initialized yet, cannot render
             return;
         }
         let dropped = 0;

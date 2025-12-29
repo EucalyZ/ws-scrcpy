@@ -12,6 +12,7 @@ import { BasePlayer } from '../player/BasePlayer';
 interface Touch {
     action: number;
     position: Position;
+    actionButton: number;
     buttons: number;
     invalid: boolean;
 }
@@ -29,6 +30,7 @@ interface CommonTouchAndMouse {
     clientY: number;
     type: string;
     target: EventTarget | null;
+    button?: number;
     buttons: number;
 }
 
@@ -256,6 +258,7 @@ export abstract class InteractionHandler {
                 invalid,
                 action,
                 position,
+                actionButton: event.button !== undefined ? (1 << event.button) : 0,
                 buttons: event.buttons,
             },
         };
@@ -304,12 +307,12 @@ export abstract class InteractionHandler {
     }
 
     protected static createEmulatedMessage(action: number, event: TouchControlMessage): TouchControlMessage {
-        const { pointerId, position, buttons } = event;
+        const { pointerId, position, actionButton, buttons } = event;
         let pressure = event.pressure;
         if (action === MotionEvent.ACTION_UP) {
             pressure = 0;
         }
-        return new TouchControlMessage(action, pointerId, position, pressure, buttons);
+        return new TouchControlMessage(action, pointerId, position, pressure, actionButton, buttons);
     }
 
     public static mapTypeToAction(type: string): number {
@@ -365,6 +368,7 @@ export abstract class InteractionHandler {
             result.push({
                 invalid,
                 action,
+                actionButton: touch.actionButton,
                 buttons,
                 position: new Position(opposite, screenSize),
             });
@@ -477,7 +481,7 @@ export abstract class InteractionHandler {
                 };
                 const event = InteractionHandler.buildTouchOnClient(item, screenInfo);
                 if (event) {
-                    const { action, buttons, position, invalid } = event.touch;
+                    const { action, actionButton, buttons, position, invalid } = event.touch;
                     let pressure = 1;
                     if (action === MotionEvent.ACTION_UP) {
                         pressure = 0;
@@ -485,7 +489,7 @@ export abstract class InteractionHandler {
                         pressure = touch.force;
                     }
                     if (!invalid) {
-                        const message = new TouchControlMessage(action, pointerId, position, pressure, buttons);
+                        const message = new TouchControlMessage(action, pointerId, position, pressure, actionButton, buttons);
                         messages.push(
                             ...InteractionHandler.validateMessage(e, message, storage, `${logPrefix}[validate]`),
                         );
@@ -519,14 +523,14 @@ export abstract class InteractionHandler {
         const points: Point[] = [];
         this.clearCanvas();
         touches.forEach((touch: Touch, pointerId: number) => {
-            const { action, buttons, position } = touch;
+            const { action, actionButton, buttons, position } = touch;
             const previous = storage.get(pointerId);
             if (!touch.invalid) {
                 let pressure = 1.0;
                 if (action === MotionEvent.ACTION_UP) {
                     pressure = 0;
                 }
-                const message = new TouchControlMessage(action, pointerId, position, pressure, buttons);
+                const message = new TouchControlMessage(action, pointerId, position, pressure, actionButton, buttons);
                 messages.push(...InteractionHandler.validateMessage(e, message, storage, `${logPrefix}[validate]`));
                 points.push(touch.position.point);
             } else {

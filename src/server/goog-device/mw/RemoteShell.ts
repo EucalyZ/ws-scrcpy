@@ -59,14 +59,14 @@ export class RemoteShell extends Mw {
         const send = USE_BINARY ? this.bufferUtf8(5) : this.buffer(5);
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore Documentation is incorrect for `encoding: null`
-        term.on('data', send);
-        term.on('exit', (code: number) => {
-            if (code === 0) {
+        term.onData(send);
+        term.onExit(({ exitCode }) => {
+            if (exitCode === 0) {
                 this.closeCode = 1000;
             } else {
                 this.closeCode = 4500;
             }
-            this.closeReason = `[${[RemoteShell.TAG]}] terminal process exited with code: ${code}`;
+            this.closeReason = `[${[RemoteShell.TAG]}] terminal process exited with code: ${exitCode}`;
             if (this.timeoutString || this.timeoutBuffer) {
                 this.terminated = true;
             } else {
