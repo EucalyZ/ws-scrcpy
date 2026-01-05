@@ -65,12 +65,23 @@ export const common = () => {
                     ],
                 },
                 {
-                    test: /\.jar$/,
+                    test: /\.(jar)$/,
                     use: [
                         {
                             loader: 'file-loader',
                             options: {
                                 name: '[path][name].[ext]',
+                            },
+                        },
+                    ],
+                },
+                {
+                    test: /scrcpy-server$/,
+                    use: [
+                        {
+                            loader: 'file-loader',
+                            options: {
+                                name: '[path][name]',
                             },
                         },
                     ],
@@ -110,6 +121,7 @@ const front: webpack.Configuration = {
     resolve: {
         fallback: {
             path: 'path-browserify',
+            events: require.resolve('events/'),
         },
         extensions: ['.tsx', '.ts', '.js'],
     },

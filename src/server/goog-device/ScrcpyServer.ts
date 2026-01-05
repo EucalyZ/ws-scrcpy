@@ -1,4 +1,4 @@
-import '../../../vendor/Genymobile/scrcpy/scrcpy-server.jar';
+import '../../../vendor/Genymobile/scrcpy/server/scrcpy-server';
 import '../../../vendor/Genymobile/scrcpy/LICENSE';
 
 import { Device } from './Device';
@@ -8,8 +8,8 @@ import PushTransfer from '@dead50f7/adbkit/lib/adb/sync/pushtransfer';
 import { ServerVersion } from './ServerVersion';
 
 const TEMP_PATH = '/data/local/tmp/';
-const FILE_DIR = path.join(__dirname, 'vendor/Genymobile/scrcpy');
-const FILE_NAME = 'scrcpy-server.jar';
+const FILE_DIR = path.join(__dirname, 'vendor/Genymobile/scrcpy/server');
+const FILE_NAME = 'scrcpy-server';
 const RUN_COMMAND = `CLASSPATH=${TEMP_PATH}${FILE_NAME} nohup app_process ${ARGS_STRING}`;
 
 type WaitForPidParams = { tryCounter: number; processExited: boolean; lookPidFile: boolean };

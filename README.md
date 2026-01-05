@@ -112,6 +112,13 @@ cp server/build/outputs/apk/debug/server-debug.apk server/scrcpy-server
 
 ```bash
 cd ws-scrcpy  # 回到项目根目录
+npm install -g node-gyp
+
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.13
+
+npm install events --save-dev
 npm install
 npm start
 ```

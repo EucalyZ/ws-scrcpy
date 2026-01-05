@@ -45,6 +45,7 @@
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-progress": "0.0.1",
+    "events": "^3.3.0",
     "file-loader": "^6.2.0",
     "h264-converter": "^0.1.4",
     "html-webpack-plugin": "^5.5.0",
